@@ -1,0 +1,61 @@
+# Template Generator Script
+
+Write-Host "Welcome to the Template Generator!" -ForegroundColor Green
+
+# Step 1: Ask for template type
+$templateType = Read-Host "What type of template would you like to create"
+
+# Step 2: Ask for project name
+$projectName = Read-Host "Enter the name of your project"
+
+# Step 3: Ask for destination directory
+$destinationDir = Read-Host "Enter the destination directory"
+
+# Validate destination directory
+if (-Not (Test-Path -Path $destinationDir)) {
+    Write-Host "The directory '$destinationDir' does not exist. Creating it now..." -ForegroundColor Yellow
+    New-Item -ItemType Directory -Path $destinationDir | Out-Null
+}
+
+# Define the generic template directory
+$genericTemplateDir = Join-Path -Path (Get-Location) -ChildPath "generic_template"
+
+if (-Not (Test-Path -Path $genericTemplateDir)) {
+    Write-Host "Error: Generic template directory '$genericTemplateDir' does not exist." -ForegroundColor Red
+    exit
+}
+
+# Step 4: Copy the selected template type to the destination
+$templateDir = Join-Path -Path $genericTemplateDir -ChildPath $templateType
+if (-Not (Test-Path -Path $templateDir)) {
+    Write-Host "Error: Template type '$templateType' does not exist in '$genericTemplateDir'." -ForegroundColor Red
+    exit
+}
+
+$projectDir = Join-Path -Path $destinationDir -ChildPath $projectName
+Copy-Item -Path $templateDir -Destination $projectDir -Recurse
+
+# Step 5: Replace placeholders in the copied files
+Get-ChildItem -Path $projectDir -Recurse -File | ForEach-Object {
+    $filePath = $_.FullName
+    $content = Get-Content -Path $filePath -Raw
+
+    # Replace placeholder with project name
+    $content = $content -replace "{{PROJECT_NAME}}", $projectName
+
+    Set-Content -Path $filePath -Value $content
+}
+
+# Step 6: Initialize a git repository and commit the files
+Set-Location -Path $projectDir
+if (-Not (Test-Path -Path (Join-Path -Path $projectDir -ChildPath ".git"))) {
+    git init | Out-Null
+    git add .
+    git commit -m "Initial Commit." | Out-Null
+    Write-Host "Initialized a new git repository and committed the files." -ForegroundColor Green
+} else {
+    Write-Host "Git repository already exists in the target directory." -ForegroundColor Yellow
+}
+
+# Step 7: Notify the user
+Write-Host "Template '$templateType' has been successfully created at '$projectDir'." -ForegroundColor Green
