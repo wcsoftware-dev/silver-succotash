@@ -2,13 +2,35 @@
 
 Write-Host "Welcome to the Template Generator!" -ForegroundColor Green
 
-# Step 1: Ask for template type
+# Save the starting directory
+$startingDir = Get-Location
+
+# Ensure the generic template directory exists
+$genericTemplateDir = Join-Path -Path $startingDir -ChildPath "generic_template"
+if (-Not (Test-Path -Path $genericTemplateDir)) {
+    Write-Host "Error: Generic template directory '$genericTemplateDir' does not exist." -ForegroundColor Red
+    Set-Location -Path $startingDir
+    exit
+}
+
+# Step 1: List available template types
+$availableTemplates = Get-ChildItem -Path $genericTemplateDir -Attributes Directory | Select-Object -ExpandProperty Name
+if (-Not $availableTemplates -or $availableTemplates.Count -eq 0) {
+    Write-Host "Error: No templates found in '$genericTemplateDir'." -ForegroundColor Red
+    Set-Location -Path $startingDir
+    exit
+}
+
+Write-Host "Available template types:" -ForegroundColor Cyan
+$availableTemplates | ForEach-Object { Write-Host "- $_" }
+
+# Step 2: Ask for template type
 $templateType = Read-Host "What type of template would you like to create"
 
-# Step 2: Ask for project name
+# Step 3: Ask for project name
 $projectName = Read-Host "Enter the name of your project"
 
-# Step 3: Ask for destination directory
+# Step 4: Ask for destination directory
 $destinationDir = Read-Host "Enter the destination directory"
 
 # Validate destination directory
@@ -18,14 +40,14 @@ if (-Not (Test-Path -Path $destinationDir)) {
 }
 
 # Define the generic template directory
-$genericTemplateDir = Join-Path -Path (Get-Location) -ChildPath "generic_template"
+$genericTemplateDir = Join-Path -Path $startingDir -ChildPath "generic_template"
 
 if (-Not (Test-Path -Path $genericTemplateDir)) {
     Write-Host "Error: Generic template directory '$genericTemplateDir' does not exist." -ForegroundColor Red
     exit
 }
 
-# Step 4: Copy the selected template type to the destination
+# Step 5: Copy the selected template type to the destination
 $templateDir = Join-Path -Path $genericTemplateDir -ChildPath $templateType
 if (-Not (Test-Path -Path $templateDir)) {
     Write-Host "Error: Template type '$templateType' does not exist in '$genericTemplateDir'." -ForegroundColor Red
@@ -35,7 +57,7 @@ if (-Not (Test-Path -Path $templateDir)) {
 $projectDir = Join-Path -Path $destinationDir -ChildPath $projectName
 Copy-Item -Path $templateDir -Destination $projectDir -Recurse
 
-# Step 5: Replace placeholders in the copied files
+# Step 6: Replace placeholders in the copied files
 Get-ChildItem -Path $projectDir -Recurse -File | ForEach-Object {
     $filePath = $_.FullName
     $content = Get-Content -Path $filePath -Raw
@@ -46,7 +68,7 @@ Get-ChildItem -Path $projectDir -Recurse -File | ForEach-Object {
     Set-Content -Path $filePath -Value $content
 }
 
-# Step 6: Initialize a git repository and commit the files
+# Step 7: Initialize a git repository and commit the files
 Set-Location -Path $projectDir
 if (-Not (Test-Path -Path (Join-Path -Path $projectDir -ChildPath ".git"))) {
     git init | Out-Null
@@ -57,5 +79,8 @@ if (-Not (Test-Path -Path (Join-Path -Path $projectDir -ChildPath ".git"))) {
     Write-Host "Git repository already exists in the target directory." -ForegroundColor Yellow
 }
 
-# Step 7: Notify the user
+# Step 8: Notify the user
 Write-Host "Template '$templateType' has been successfully created at '$projectDir'." -ForegroundColor Green
+
+# Return to the starting directory
+Set-Location -Path $startingDir
