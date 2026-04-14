@@ -1,4 +1,4 @@
-#include <iostream>
+#include "{{PROJECT_NAME}}.h"
 
 int main() {
     std::cout << "Hello, {{PROJECT_NAME}}!" << std::endl;

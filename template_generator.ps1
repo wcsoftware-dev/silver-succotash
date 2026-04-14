@@ -62,10 +62,22 @@ Get-ChildItem -Path $projectDir -Recurse -File | ForEach-Object {
     $filePath = $_.FullName
     $content = Get-Content -Path $filePath -Raw
 
-    # Replace placeholder with project name
+    # Replace placeholder with project name in file content
     $content = $content -replace "{{PROJECT_NAME}}", $projectName
 
     Set-Content -Path $filePath -Value $content
+}
+
+# Step 6.1: Replace placeholders in file names
+Get-ChildItem -Path $projectDir -Recurse -File | ForEach-Object {
+    $filePath = $_.FullName
+    $fileName = $_.Name
+
+    if ($fileName -match "{{PROJECT_NAME}}") {
+        $newFileName = $fileName -replace "{{PROJECT_NAME}}", $projectName
+        $newFilePath = Join-Path -Path $_.DirectoryName -ChildPath $newFileName
+        Rename-Item -Path $filePath -NewName $newFilePath
+    }
 }
 
 # Step 7: Initialize a git repository and commit the files
